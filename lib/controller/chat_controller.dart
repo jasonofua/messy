@@ -1,11 +1,11 @@
-// File: lib/chat_controller.dart
 import 'dart:typed_data';
-
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'package:get_storage/get_storage.dart';
 
 class Message {
   final String content;
@@ -28,11 +28,14 @@ class ChatController extends GetxController {
   RxBool isConnected = false.obs;
   RxString status = "Disconnected".obs;
   final Set<String> processedMessages = <String>{};
-  final RxList<String> connectedEndpoints = <String>[].obs; // List to track connected endpoints
+  final RxList<String> connectedEndpoints = <String>[].obs;
+  final TextEditingController messageController = TextEditingController();
+  final box = GetStorage();
 
   @override
   void onInit() {
     super.onInit();
+    box.writeIfNull('connectedEndpoints', []);
     startAdvertising();
     startDiscovery();
   }
@@ -47,6 +50,7 @@ class ChatController extends GetxController {
           if (status == Status.CONNECTED) {
             isConnected.value = true;
             connectedEndpoints.add(id);
+            box.write('connectedEndpoints', connectedEndpoints);
             this.status.value = "Connected";
           } else {
             isConnected.value = false;
@@ -57,6 +61,7 @@ class ChatController extends GetxController {
           isConnected.value = false;
           status.value = "Disconnected";
           connectedEndpoints.remove(id);
+          box.write('connectedEndpoints', connectedEndpoints);
         },
       );
     } catch (e) {
@@ -78,6 +83,7 @@ class ChatController extends GetxController {
               if (status == Status.CONNECTED) {
                 isConnected.value = true;
                 connectedEndpoints.add(id);
+                box.write('connectedEndpoints', connectedEndpoints);
                 this.status.value = "Connected";
               } else {
                 isConnected.value = false;
@@ -88,6 +94,7 @@ class ChatController extends GetxController {
               isConnected.value = false;
               status.value = "Disconnected";
               connectedEndpoints.remove(id);
+              box.write('connectedEndpoints', connectedEndpoints);
             },
           );
         },
@@ -179,5 +186,10 @@ class ChatController extends GetxController {
 
   String getRelativeTime(DateTime timestamp) {
     return timeago.format(timestamp);
+  }
+
+  void onShake() {
+    // Action to perform on shake
+    print("Device shaken!");
   }
 }

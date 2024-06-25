@@ -43,6 +43,8 @@ dependencies:
   path_provider:
   permission_handler:
   location:
+  sensors_plus: ^5.0.1
+  get_storage: ^2.1.1
 
 dev_dependencies:
   flutter_test:
