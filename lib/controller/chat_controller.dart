@@ -1,3 +1,4 @@
+// File: lib/chat_controller.dart
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,6 +20,20 @@ class Message {
     required this.isSentByMe,
     required this.messageId,
   });
+
+  Map<String, dynamic> toJson() => {
+    'content': content,
+    'timestamp': timestamp.toIso8601String(),
+    'isSentByMe': isSentByMe,
+    'messageId': messageId,
+  };
+
+  factory Message.fromJson(Map<String, dynamic> json) => Message(
+    content: json['content'],
+    timestamp: DateTime.parse(json['timestamp']),
+    isSentByMe: json['isSentByMe'],
+    messageId: json['messageId'],
+  );
 }
 
 class ChatController extends GetxController {
@@ -121,12 +136,15 @@ class ChatController extends GetxController {
             DateTime timestamp = DateTime.parse(data['timestamp']);
             bool isSentByMe = data['isSentByMe'];
 
-            messages.add(Message(
+            Message newMessage = Message(
               content: content,
               timestamp: timestamp,
               isSentByMe: isSentByMe,
               messageId: messageId,
-            ));
+            );
+
+            messages.add(newMessage);
+            _saveMessage(endid, newMessage);
 
             // Forward the message to other connected devices
             await forwardMessage(receivedData, endid);
@@ -160,6 +178,7 @@ class ChatController extends GetxController {
 
       String jsonData = jsonEncode(data);
       await _sendToAllEndpoints(jsonData);
+      _saveMessage('local', newMessage); // Save message locally as well
     }
   }
 
@@ -178,6 +197,17 @@ class ChatController extends GetxController {
         }
       }
     }
+  }
+
+  void _saveMessage(String endpointId, Message message) {
+    List<String> messagesJson = box.read<List<String>>(endpointId) ?? [];
+    messagesJson.add(jsonEncode(message.toJson()));
+    box.write(endpointId, messagesJson);
+  }
+
+  List<Message> getMessages(String endpointId) {
+    List<String> messagesJson = box.read<List<String>>(endpointId) ?? [];
+    return messagesJson.map((msg) => Message.fromJson(jsonDecode(msg))).toList();
   }
 
   String getFormattedTime(DateTime timestamp) {
